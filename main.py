@@ -10,11 +10,15 @@ Domain here is used to limit preprocessing of dataset as well as for information
 import argparse
 import yaml
 import pandas as pd
+import time
+from concurrent.futures import ThreadPoolExecutor
 
+import grib_helper
 from forecast_processor import process_all_variables
 from ar_hazard_index import compute_AR_hazard_index
 from io_utils import save_processed_datasets
 from summaries import export_summary_csv
+import globalvars
 
 
 # ---------------------------------------------------------
@@ -26,7 +30,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     "--init-date",
     required=True,
-    help="Initialization date YYYYMMDD",
+    help="Initialization date YYYYMMDDHH",
 )
 
 parser.add_argument(
@@ -63,6 +67,9 @@ var_lst = [
     "uv",
 ]
 
+leads = globalvars.leads
+nworkers = 4
+
 # ---------------------------------------------------------
 # Load domain config
 # ---------------------------------------------------------
@@ -81,9 +88,26 @@ domain = {
 
 
 # ---------------------------------------------------------
+# Build index files if reading realtime .grb2 files
+# ---------------------------------------------------------
+# if source == "realtime":
+#     t00 = time.perf_counter()
+#     args = (leads, init_date)
+    
+#     with ThreadPoolExecutor(max_workers=nworkers) as executor:
+#         results = list(executor.map(grib_helper.build_and_save_index_files, args))
+    
+#     total = time.perf_counter() - t00
+    
+#     print("\nIndividual times:")
+#     for F, elapsed in results:
+#         print(f"F{F:03d}: {elapsed:.2f} s")
+    
+#     print(f"\nTotal wall time to build index files: {total:.2f} s")
+
+# ---------------------------------------------------------
 # Process variables
 # ---------------------------------------------------------
-
 fc, final_ds = process_all_variables(
     init_date=init_date,
     var_lst=var_lst,

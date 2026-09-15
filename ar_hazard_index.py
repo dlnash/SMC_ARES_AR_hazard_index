@@ -68,7 +68,7 @@ def compute_AR_hazard_index(ds):
     # -----------------------------------------
     # Wind diagnostics
     # -----------------------------------------
-    ## +0.5 Index Point for uv1000 >= 95th percentile
+    ## +0.5 Index Point for uv >= 95th percentile
     AR3 = xr.where(ds.uv >= 0.95, 0.5, 0.0)
 
     ## +0.5 Index Point for IVT direction opposing aspect

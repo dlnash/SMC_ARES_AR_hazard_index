@@ -12,6 +12,7 @@ import numpy as np
 
 from config import DOY_BLOCKS
 import globalvars
+import gefs_realtime
 
 path_to_data = globalvars.path_to_data
 
@@ -41,22 +42,24 @@ def standardize_coords(ds):
 
     var_map = {
         "tp": "qpf",
+        "gh": "freezing_level",
     }
 
     coord_rename = {
-        k: v for k, v in coord_map.items()
+        k: v
+        for k, v in coord_map.items()
         if k in ds.coords or k in ds.dims
     }
 
     var_rename = {
-        k: v for k, v in var_map.items()
+        k: v
+        for k, v in var_map.items()
         if k in ds.data_vars
     }
 
-    ds = ds.rename(coord_rename)
-    ds = ds.rename(var_rename)
-
-    return ds
+    return ds.rename(
+        coord_rename | var_rename
+    )
 
 def harmonize_datasets(
     forecast,
@@ -144,23 +147,27 @@ def harmonize_datasets(
     # 8. Standard dimension ordering
     # -------------------------------------------------
 
+    preferred_order = [
+        "number",
+        "ensemble",
+        "init_date",
+        "lead_time",
+        "latitude",
+        "longitude",
+    ]
+    
     dim_order = [
-        d for d in [
-            "lead_time",
-            "latitude",
-            "longitude",
-        ]
+        d for d in preferred_order
         if d in forecast.dims
     ]
-
+    
     forecast = forecast.transpose(*dim_order)
-    # mclimate = mclimate.transpose(*dim_order)
 
     return forecast, mclimate
 
 def load_reforecast(init_date, varname):
 
-    init_date = pd.to_datetime(init_date)
+    init_date = pd.to_datetime(init_date, format="%Y%m%d%H")
 
     filename = os.path.join(
         path_to_data,
@@ -177,7 +184,7 @@ def load_reforecast(init_date, varname):
 
 def load_gefs_archive(init_date, varname):
 
-    init_date = pd.to_datetime(init_date)
+    init_date = pd.to_datetime(init_date, format="%Y%m%d%H")
 
     filename = os.path.join(
         path_to_data,
@@ -191,6 +198,23 @@ def load_gefs_archive(init_date, varname):
     ds = xr.open_dataset(filename, decode_timedelta=True)
 
     return ds
+
+def load_gefs_realtime(init_date, varname):
+
+    if varname == "freezing_level":
+        return gefs_realtime.load_realtime_freezing_level(init_date)
+
+    elif varname == "uv":
+        return gefs_realtime.load_realtime_uv(init_date)
+
+    elif varname == "qpf":
+        return gefs_realtime.load_realtime_qpf(init_date)
+
+    elif varname == "ivt":
+        return gefs_realtime.load_realtime_ivt(init_date)
+
+    else:
+        raise ValueError(f"Unsupported realtime variable: {varname}")
 
 def load_mclimate(init_date, varname, doy_blocks, base_dir=None):
     """
@@ -216,7 +240,7 @@ def load_mclimate(init_date, varname, doy_blocks, base_dir=None):
         base_dir = path_to_data
 
     # Convert to datetime
-    init_date = pd.to_datetime(init_date)
+    init_date = pd.to_datetime(init_date, format="%Y%m%d%H")
     doy = init_date.dayofyear
 
     # Handle leap year edge case (optional but recommended)
@@ -248,27 +272,42 @@ def load_mclimate(init_date, varname, doy_blocks, base_dir=None):
 
     return ds
 
+def prepare_forecast_and_mclimate(
+    init_date,
+    varname,
+    domain,
+    source="reforecast",
+):
 
-def prepare_forecast_and_mclimate(init_date, varname, domain, source="reforecast"):
     if source == "reforecast":
-        forecast = load_reforecast(init_date, varname)
-    
+        forecast = load_reforecast(
+            init_date,
+            varname,
+        )
+
     elif source == "archive":
-        forecast = load_gefs_archive(init_date, varname)
-    
-    # elif source == "realtime":
-    #     forecast = load_gefs(init_date, varname)
+        forecast = load_gefs_archive(
+            init_date,
+            varname,
+        )
+
+    elif source == "realtime":
+        forecast = load_gefs_realtime(
+            init_date,
+            varname,
+        )
 
     else:
-        print('Do not have capability for this source')
-        return
-    
+        raise ValueError(
+            f"Unsupported forecast source: {source}"
+        )
+
     mclimate = load_mclimate(
         init_date,
         varname,
         DOY_BLOCKS,
     )
-    
+
     forecast, mclimate = harmonize_datasets(
         forecast=forecast,
         mclimate=mclimate,
