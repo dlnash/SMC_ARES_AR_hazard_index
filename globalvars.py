@@ -16,4 +16,5 @@ GEFS_REALTIME_IVT_DIR = "/cw3e/mead/projects/cwp140/data/preprocessed/test_merce
 # GEFS_REALTIME_DIR = "/data/projects/external_datasets/GEFS/processed"
 # GEFS_REALTIME_IVT_DIR = "/data/projects/derived_products/GEFS_IVT/data"
 
-leads = np.arange(3, 169, 3)
+leads = np.arange(6, 169, 6)
+qpf_leads = np.arange(3, 169, 3)

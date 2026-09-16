@@ -57,27 +57,6 @@ def load_xarray_object_from_grb_using_index(F, varname, init_date):
 
     return xr_ds
 
-def realtime_harmonizer(ds):
-    # -------------------------------------------------
-    # Longitude normalization
-    # -------------------------------------------------
-
-    ds = ds.assign_coords(
-        longitude=((ds.longitude + 180) % 360) - 180
-    )
-
-    ds = ds.sortby("longitude")
-
-    # -------------------------------------------------
-    # Standardize coordinate names
-    # -------------------------------------------------
-
-    ds = ds.rename({
-        "time": "init_date",
-    })
-
-    return ds
-
 def load_realtime_ivt(init_date, leads=None):
 
     init_date = pd.to_datetime(init_date, format="%Y%m%d%H")
@@ -121,13 +100,10 @@ def load_realtime_freezing_level(init_date, leads=None):
             init_date=fdate,
         )
 
-        ds = ds.expand_dims(lead_time=[F])
-
         ds_lst.append(ds)
 
-    ds = xr.concat(ds_lst, dim="lead_time")
-
-    ds = realtime_harmonizer(ds)
+    ds = xr.concat(ds_lst, dim="step")
+    ds = ds.drop_vars("isothermZero")
 
     print(f"\nTotal time to read freezing level: {time.perf_counter() - t00:.2f} s")
 
@@ -179,18 +155,11 @@ def load_realtime_uv(
         v = v_ds["v"].load()
         v_ds.close()
 
-        ds = xr.merge([
-            u,
-            v,
-        ])
-
-        ds = ds.expand_dims(lead_time=[F])
+        ds = xr.merge([u,v,], compat="no_conflicts")
 
         ds_lst.append(ds)
 
-    ds = xr.concat(ds_lst, dim="lead_time")
-
-    ds = realtime_harmonizer(ds)
+    ds = xr.concat(ds_lst, dim="step", coords="minimal",)
 
     # -------------------------------------------------
     # Compute wind magnitude
@@ -235,7 +204,7 @@ def load_realtime_qpf(init_date, leads=None):
     init_date = pd.to_datetime(init_date, format="%Y%m%d%H")
 
     if leads is None:
-        leads = globalvars.leads
+        leads = globalvars.qpf_leads
 
     fdate = init_date.strftime("%Y%m%d%H")
 
@@ -258,7 +227,7 @@ def load_realtime_qpf(init_date, leads=None):
     ds = xr.concat(ds_lst, dim="step", coords=["valid_time"])
 
     ds = fix_accum_qpf(ds)
-    print(ds)
+    ds = ds.drop_vars("surface")
 
     print(f"\nTotal time to read qpf: {time.perf_counter() - t00:.2f} s")
 

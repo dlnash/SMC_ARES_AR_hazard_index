@@ -16,6 +16,14 @@ import gefs_realtime
 
 path_to_data = globalvars.path_to_data
 
+def clean_datetime_attrs(ds):
+    for coord in ["init_date", "valid_time"]:
+        if coord in ds.coords:
+            ds[coord].attrs.pop("units", None)
+            ds[coord].attrs.pop("calendar", None)
+
+    return ds
+
 def subset_domain(ds, domain):
 
     lat = ds.latitude
@@ -38,11 +46,16 @@ def standardize_coords(ds):
         "lon": "longitude",
         "step": "lead_time",
         "time": "init_date",
+        "forecast_hour": "lead_time",
+        "ensemble": "number",
     }
 
     var_map = {
         "tp": "qpf",
         "gh": "freezing_level",
+        "IVT": "ivt",
+        "uIVT": "ivtu",
+        "vIVT": "ivtv",
     }
 
     coord_rename = {
@@ -61,6 +74,26 @@ def standardize_coords(ds):
         coord_rename | var_rename
     )
 
+def longitude_normalizer(ds):
+    # -------------------------------------------------
+    # Longitude normalization
+    # -------------------------------------------------
+
+    if "longitude" not in ds.coords:
+        return ds
+
+    lon_min = ds.longitude.min().item()
+    lon_max = ds.longitude.max().item()
+
+    # Only normalize if longitudes are in the 0-360 convention
+    if lon_min >= 0 and lon_max > 180:
+        ds = ds.assign_coords(
+            longitude=((ds.longitude + 180) % 360) - 180
+        )
+        ds = ds.sortby("longitude")
+
+    return ds
+
 def harmonize_datasets(
     forecast,
     mclimate,
@@ -78,10 +111,15 @@ def harmonize_datasets(
     # -------------------------------------------------
 
     forecast = standardize_coords(forecast)
-    print(forecast)
     mclimate = standardize_coords(mclimate)
-    print(mclimate)
-    
+
+    # -------------------------------------------------
+    # 2. Convert lon from 0-360 to -180 to 180
+    # -------------------------------------------------
+
+    forecast = longitude_normalizer(forecast)
+    mclimate = longitude_normalizer(mclimate)
+
     # -------------------------------------------------
     # 2. Spatial subset
     # -------------------------------------------------
@@ -162,6 +200,13 @@ def harmonize_datasets(
     ]
     
     forecast = forecast.transpose(*dim_order)
+
+    # -------------------------------------------------
+    # 9. Remove time-encoding attributes 
+    # -------------------------------------------------
+
+    forecast = clean_datetime_attrs(forecast)
+    mclimate = clean_datetime_attrs(mclimate)
 
     return forecast, mclimate
 
