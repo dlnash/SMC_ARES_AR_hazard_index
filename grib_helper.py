@@ -98,9 +98,7 @@ def build_index_and_save(fname, indexpath):
 
     return index
 
-def build_and_save_index_files(args):
-
-    F, init_date = args
+def build_and_save_index_files(F, init_date):
         
     fname = os.path.join(
         globalvars.GEFS_REALTIME_DIR,

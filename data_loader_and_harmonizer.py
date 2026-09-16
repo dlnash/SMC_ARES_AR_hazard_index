@@ -16,6 +16,21 @@ import gefs_realtime
 
 path_to_data = globalvars.path_to_data
 
+def convert_leadtime_to_integer_hours(ds):
+    
+    if np.issubdtype(ds.lead_time.dtype, np.timedelta64):
+        ds = ds.assign_coords(
+            lead_time=ds.lead_time / np.timedelta64(1, "h")
+        )
+    
+    ds = ds.assign_coords(
+        lead_time=ds.lead_time.astype(int)
+    )
+
+    print(ds)
+
+    return ds
+
 def clean_datetime_attrs(ds):
     for coord in ["init_date", "valid_time"]:
         if coord in ds.coords:
@@ -207,6 +222,13 @@ def harmonize_datasets(
 
     forecast = clean_datetime_attrs(forecast)
     mclimate = clean_datetime_attrs(mclimate)
+
+    # -------------------------------------------------
+    # 10. Convert lead_time to integer hours
+    # -------------------------------------------------
+    
+    forecast = convert_leadtime_to_integer_hours(forecast)
+    mclimate = convert_leadtime_to_integer_hours(mclimate)
 
     return forecast, mclimate
 

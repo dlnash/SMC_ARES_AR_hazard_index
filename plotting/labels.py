@@ -97,7 +97,7 @@ def format_lon(lon):
 
 
 def format_forecast_titles(domain_cfg, init_date, lead_time):
-    ts = pd.to_datetime(init_date, format="%Y%m%d")
+    ts = pd.to_datetime(init_date, format="%Y%m%d%H")
 
     init_time = ts.strftime("%HZ %d %b %Y")
     valid_time = (ts + timedelta(hours=int(lead_time))).strftime("%HZ %d %b %Y")

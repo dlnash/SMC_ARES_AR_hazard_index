@@ -159,7 +159,12 @@ def load_realtime_uv(
 
         ds_lst.append(ds)
 
-    ds = xr.concat(ds_lst, dim="step", coords="minimal",)
+    # ds = xr.concat(ds_lst, dim="step", coords="minimal",)
+    ds = xr.concat(
+        ds_lst,
+        dim="step",
+        coords=["step", "valid_time"],
+    )
 
     # -------------------------------------------------
     # Compute wind magnitude

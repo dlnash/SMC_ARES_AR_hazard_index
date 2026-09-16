@@ -7,6 +7,7 @@ Description: Functions for creating a four panel map with Mclimate ranks and a h
 import os
 from pathlib import Path
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from plotting.layout import initialize_figure
 from plotting.labels import format_forecast_titles, add_panel_label, add_annotation_text, panel_label
@@ -20,6 +21,7 @@ def save_figure(
     fig,
     domain_name,
     init_date,
+    lead_time,
     out_root="output/figures",
     dpi=300,
     filetype="png",
@@ -35,6 +37,8 @@ def save_figure(
         Domain name (e.g. 'SEAK')
     init_date : str
         Initialization date (e.g. '2026010100')
+    lead_time : int
+        Lead time 
     out_root : str, optional
         Root output directory
     dpi : int, optional
@@ -46,7 +50,7 @@ def save_figure(
     out_dir = Path(out_root) / domain_name
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    fname = out_dir / f"mclimate_{domain_name}_{init_date}.{filetype}"
+    fname = out_dir / f"mclimate_{domain_name}_{init_date}_F{lead_time:03d}.{filetype}"
 
     print(f"Saving figure: {fname}")
 
@@ -168,4 +172,5 @@ def create_mclimate_figure(ds,
         for i, cfg in enumerate(panel_configs.values()):
             add_panel_label(cfg["ax"], panel_label(i), x=cfg["x"], y=cfg["y"])
     
-    save_figure(fig, domain_name, init_date)
+    save_figure(fig, domain_name, init_date, lead_time)
+    plt.close(fig)

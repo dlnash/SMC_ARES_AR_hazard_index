@@ -60,7 +60,7 @@ def plot_heatmap_panel(fig, gs, df, init_date):
     heatmap_axes = []
 
     ## create list of valid dates
-    ts = pd.to_datetime(init_date, format="%Y%m%d")
+    ts = pd.to_datetime(init_date, format="%Y%m%d%H")
     col2 = []
     date_lbl = []
     step_lst = df["lead_time"].tolist()

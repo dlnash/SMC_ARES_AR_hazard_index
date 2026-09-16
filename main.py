@@ -67,7 +67,6 @@ var_lst = [
     "uv",
 ]
 
-leads = globalvars.leads
 nworkers = 4
 
 # ---------------------------------------------------------
@@ -90,6 +89,37 @@ domain = {
 # ---------------------------------------------------------
 # Build index files if reading realtime .grb2 files
 # ---------------------------------------------------------
+if source == "realtime":
+    def make_index(lead_time):
+        t0 = time.perf_counter()
+    
+        grib_helper.build_and_save_index_files(
+            F=lead_time,
+            init_date=init_date,
+        )
+    
+        elapsed = time.perf_counter() - t0
+    
+        return lead_time, elapsed
+    
+    
+    t00 = time.perf_counter()
+    
+    with ThreadPoolExecutor(max_workers=nworkers) as executor:
+        results = list(
+            executor.map(
+                make_index,
+                globalvars.leads,
+            )
+        )
+    
+    total = time.perf_counter() - t00
+    
+    print("\nIndividual times:")
+    for F, elapsed in results:
+        print(f"F{F:03d}: {elapsed:.2f} s")
+    
+    print(f"\nTotal wall time to build index files: {total:.2f} s")
 # if source == "realtime":
 #     t00 = time.perf_counter()
 #     args = (leads, init_date)
@@ -128,6 +158,7 @@ final_ds = compute_AR_hazard_index(
 # ---------------------------------------------------------
 # Export netCDFs
 # ---------------------------------------------------------
+
 save_processed_datasets(
     fc,
     final_ds,
