@@ -4,6 +4,7 @@ Author:      Deanna Nash, dnash@ucsd.edu
 Description: wrapper to use in-memory index to read .grb files for multiple variables
 """
 
+import os
 import xarray as xr
 import numpy as np
 import pickle
@@ -12,6 +13,7 @@ from cfgrib.dataset import open_fileindex
 from cfgrib.messages import FileStream, FileIndex
 from cfgrib.dataset import build_dataset_components
 from cfgrib.dataset import Dataset as CfgribDataset
+import time
 
 import globalvars
 

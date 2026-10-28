@@ -11,7 +11,8 @@ import argparse
 import yaml
 import pandas as pd
 import time
-from concurrent.futures import ThreadPoolExecutor
+# from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 
 import grib_helper
 from forecast_processor import process_all_variables
@@ -67,7 +68,7 @@ var_lst = [
     "uv",
 ]
 
-nworkers = 4
+nworkers = 8
 
 # ---------------------------------------------------------
 # Load domain config
@@ -89,27 +90,27 @@ domain = {
 # ---------------------------------------------------------
 # Build index files if reading realtime .grb2 files
 # ---------------------------------------------------------
-if source == "realtime":
-    def make_index(lead_time):
-        t0 = time.perf_counter()
-    
-        grib_helper.build_and_save_index_files(
-            F=lead_time,
-            init_date=init_date,
-        )
-    
-        elapsed = time.perf_counter() - t0
-    
-        return lead_time, elapsed
-    
-    
+def make_index(lead_time):
+    t0 = time.perf_counter()
+
+    grib_helper.build_and_save_index_files(
+        F=lead_time,
+        init_date=init_date,
+    )
+
+    elapsed = time.perf_counter() - t0
+
+    return lead_time, elapsed
+        
+if source == "realtime":  
     t00 = time.perf_counter()
     
-    with ThreadPoolExecutor(max_workers=nworkers) as executor:
+    # with ThreadPoolExecutor(max_workers=nworkers) as executor:
+    with ProcessPoolExecutor(max_workers=nworkers) as executor:
         results = list(
             executor.map(
                 make_index,
-                globalvars.leads,
+                globalvars.qpf_leads,
             )
         )
     
@@ -138,6 +139,7 @@ if source == "realtime":
 # ---------------------------------------------------------
 # Process variables
 # ---------------------------------------------------------
+t00 = time.perf_counter()
 fc, final_ds = process_all_variables(
     init_date=init_date,
     var_lst=var_lst,
@@ -177,3 +179,6 @@ export_summary_csv(
     init_date,
     mode="max",
 )
+
+total = time.perf_counter() - t00
+print(f"\nTotal time to read and preprocess data: {total:.2f} s")

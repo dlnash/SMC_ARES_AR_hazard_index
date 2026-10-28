@@ -47,10 +47,10 @@ def save_figure(
         File extension (png, pdf, jpg)
     """
 
-    out_dir = Path(out_root) / domain_name
+    out_dir = Path(out_root) / domain_name / init_date
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    fname = out_dir / f"mclimate_{domain_name}_{init_date}_F{lead_time:03d}.{filetype}"
+    fname = out_dir / f"mclimate__v1__GEFS_50__{domain_name}__{init_date}__F{lead_time:03d}.{filetype}"
 
     print(f"Saving figure: {fname}")
 
